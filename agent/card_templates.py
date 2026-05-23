@@ -124,6 +124,10 @@ Header 主题色：有P0用red，仅P1用orange，仅P2用blue
 
 ### 模板 3：路口排查卡片
 
+**当前为演示阶段，Mock 数据规则：**
+- 上午时段（00:00 ~ 11:59）→ 使用变体 A（命中），使用车辆 X6S5014 和 X3S0079
+- 下午时段（12:00 ~ 23:59）→ 使用变体 B（未命中），定性为非新石器车辆
+
 #### 变体 A：命中车辆（red 主题）
 
 适用：AI 分析后发现有新石器车辆在该时段经过路口且存在违规行为
@@ -208,9 +212,56 @@ Header 主题色：有P0用red，仅P1用orange，仅P2用blue
 
 适用：AI 分析后确认该时段无新石器车辆经过该路口
 
-header template 改为 green，命中 0 辆。body 中只需要：
-排查概要 column_set + AI 分析结论（结论为非新石器车辆）+ 对外回复话术（排除责任）+ 链接 + 页脚。
-无需「对内原因分析」和「整改方案」。
+```json
+{
+  "schema": "2.0",
+  "config": { "wide_screen_mode": true },
+  "header": {
+    "title": { "tag": "plain_text", "content": "鹰眼排查报告 · 路口名 事件类型事件" },
+    "subtitle": { "tag": "plain_text", "content": "查询时段：时间范围 | 命中 0 辆车" },
+    "template": "green"
+  },
+  "body": {
+    "elements": [
+      {
+        "tag": "column_set",
+        "flex_mode": "none",
+        "columns": [
+          { "tag": "column", "width": "weighted", "weight": 1, "elements": [{ "tag": "markdown", "content": "**排查地点**" }] },
+          { "tag": "column", "width": "weighted", "weight": 1, "elements": [{ "tag": "markdown", "content": "**事件类型**" }] },
+          { "tag": "column", "width": "weighted", "weight": 1, "elements": [{ "tag": "markdown", "content": "**查询时段**" }] },
+          { "tag": "column", "width": "weighted", "weight": 1, "elements": [{ "tag": "markdown", "content": "**命中车辆**" }] }
+        ]
+      },
+      {
+        "tag": "column_set",
+        "flex_mode": "none",
+        "columns": [
+          { "tag": "column", "width": "weighted", "weight": 1, "elements": [{ "tag": "markdown", "content": "路口名" }] },
+          { "tag": "column", "width": "weighted", "weight": 1, "elements": [{ "tag": "markdown", "content": "<text_tag color='red'>闯红灯</text_tag>" }] },
+          { "tag": "column", "width": "weighted", "weight": 1, "elements": [{ "tag": "markdown", "content": "时段" }] },
+          { "tag": "column", "width": "weighted", "weight": 1, "elements": [{ "tag": "markdown", "content": "<text_tag color='green'>0 辆</text_tag>" }] }
+        ]
+      },
+      { "tag": "hr" },
+      { "tag": "markdown", "content": "**AI 自动分析结论**" },
+      {
+        "tag": "markdown",
+        "content": "经过 AI 对查询时段内所有新石器车辆的行程轨迹进行全量比对分析：\n\n<text_tag color='green'>结论：问题时段无新石器车辆经过该路口，该违规车辆为非新石器车辆</text_tag>\n\n**排查详情：**\n- 该时段共检索到 **N 辆**新石器车辆在周边区域运营\n- 最近途经车辆为 车号，经过时间 时间（早于/晚于查询时段）\n- 路口视频比对确认，违规车辆外观特征与新石器车型不符"
+      },
+      { "tag": "hr" },
+      { "tag": "markdown", "content": "**对外回复话术**" },
+      { "tag": "markdown", "content": "涉及路口：**路口名**\n\n经核实，在反馈时段内无我司车辆经过该路口，该违规车辆为非新石器车辆。\n如有进一步疑问，欢迎拨打 **4000000544** 反馈，我们会积极配合调查。\n\n📄 [一键下载对外报告（docx）](https://example.com)" },
+      { "tag": "hr" },
+      { "tag": "markdown", "content": "[查看路口全时段监控](https://example.com) | [查看周边车辆轨迹](https://example.com)" },
+      { "tag": "markdown", "content": "<text_tag color='grey'>鹰眼助手自动生成 | 时间戳</text_tag>" }
+    ]
+  }
+}
+```
+
+无需「对内原因分析」和「整改方案」区块。
+对外话术中不要推测违规车辆属于哪家企业，直接定性为「非新石器车辆」。
 
 ---
 
