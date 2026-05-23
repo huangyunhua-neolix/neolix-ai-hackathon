@@ -87,10 +87,13 @@ class LlmClient:
                 if response.stop_reason != "max_tokens":
                     break
 
-                # Continue: append partial assistant output, ask to continue.
-                logger.info("Output truncated, requesting continuation...")
-                messages.append({"role": "assistant", "content": chunk})
-                messages.append({"role": "user", "content": "继续输出，从截断处接着写，不要重复已输出的内容"})
+                # Continue via prefill: set partial output as assistant
+                # message so the model continues from where it left off.
+                logger.info("Output truncated, continuing via prefill...")
+                messages = list(history)
+                messages.append(
+                    {"role": "assistant", "content": full_response}
+                )
 
         except Exception:
             logger.exception("LLM call error")
