@@ -29,6 +29,7 @@ def ExtractJson(raw: str) -> str:
       - ```json ... ``` wrapping
       - Leading/trailing prose around the JSON object
       - Extra whitespace
+      - Strings containing braces (proper quote-aware matching)
     """
     text = raw.strip()
 
@@ -42,13 +43,28 @@ def ExtractJson(raw: str) -> str:
     if start == -1:
         return raw  # give up, return as-is
 
-    # Find the matching closing '}'.
+    # Find the matching closing '}', handling strings properly.
     depth = 0
+    in_string = False
+    escape = False
     end = start
     for i in range(start, len(text)):
-        if text[i] == "{":
+        c = text[i]
+        if escape:
+            escape = False
+            continue
+        if c == "\\":
+            if in_string:
+                escape = True
+            continue
+        if c == '"':
+            in_string = not in_string
+            continue
+        if in_string:
+            continue
+        if c == "{":
             depth += 1
-        elif text[i] == "}":
+        elif c == "}":
             depth -= 1
             if depth == 0:
                 end = i
@@ -74,17 +90,30 @@ async def Main() -> None:
 
             # Validate it's valid JSON.
             try:
-                json.loads(card_json_str)
-            except json.JSONDecodeError:
+                card_obj = json.loads(card_json_str)
+            except json.JSONDecodeError as e:
                 logger.warning(
-                    "LLM returned invalid JSON:\n%s", card_json_str[:500]
+                    "LLM returned invalid JSON (error: %s):\n%s",
+                    e,
+                    card_json_str[:500],
                 )
                 # Fallback: wrap raw LLM text in a notification card.
                 await bot.SendCard(chat_id, raw_output)
                 return
 
+            # Re-serialize to ensure compact, clean JSON for lark-cli.
+            clean_json = json.dumps(card_obj, ensure_ascii=False)
+
             # Send the card JSON via lark-cli.
-            await bot.SendRawCard(chat_id, card_json_str)
+            ok = await bot.SendRawCard(chat_id, clean_json)
+            if not ok:
+                logger.warning("SendRawCard failed, falling back to text")
+                await bot.SendCard(
+                    chat_id,
+                    "Card rendering failed. Please try again.",
+                    template="orange",
+                    title="Warning",
+                )
 
         except Exception:
             logger.exception("Error handling message")

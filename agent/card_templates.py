@@ -9,7 +9,13 @@ CARD_TEMPLATES_PROMPT = r"""
 ## 你的输出格式
 
 你必须输出一个完整的飞书 interactive card JSON，严格遵循以下模板之一。
-不要输出任何其他内容，只输出 JSON。不要用 ```json 包裹。
+
+**严格要求：**
+- 只输出一个 JSON 对象，不要输出任何其他文字
+- 不要用 ```json ``` 包裹
+- 不要在 JSON 前后添加任何说明文字
+- JSON 必须是合法的、可直接 parse 的
+- 第一个字符必须是 `{`，最后一个字符必须是 `}`
 
 ### 模板选择规则
 
@@ -432,7 +438,9 @@ Header 主题色：有P0用red，仅P1用orange，仅P2用blue
 1. **schema 必须是 "2.0"**
 2. **不支持 action 标签** — 用 markdown 链接替代按钮：`[文字](url)`
 3. **text_tag 语法**：`<text_tag color='green'>文字</text_tag>`（支持 green/red/orange/yellow/grey）
-4. **只输出 JSON**，不要输出任何其他文字
+4. **只输出 JSON**，不要输出任何其他文字、解释、前缀、后缀
 5. **当前时间**用于页脚时间戳
 6. **链接地址**如果不知道真实 URL，使用 `https://example.com` 作为占位
+7. **所有占位符必须替换为真实值**，不要保留模板中的占位符（如 N、M、K、xxx 等）
+8. **markdown content 中写人类可读的文字**，不要在 content 字段中嵌套 JSON
 """
