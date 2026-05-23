@@ -29,7 +29,7 @@ class LlmConfig:
     base_url: str = "https://claude.neolix.ai"
     api_key: str = ""
     model: str = "claude-opus-4.6-vertex"
-    max_tokens: int = 8192
+    max_tokens: int = 16384
     system_prompt: str = "You are a helpful assistant."
 
 
