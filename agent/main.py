@@ -16,61 +16,45 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-# Regex to strip ```json ... ``` wrapping that LLMs often add.
-_CODE_BLOCK_RE = re.compile(
-    r"```(?:json)?\s*\n?(.*?)\n?\s*```", re.DOTALL
-)
+def ExtractJson(raw: str) -> dict | None:
+    """Extract a valid JSON object from LLM output.
 
+    Tries multiple strategies:
+      1. Direct json.loads on stripped text
+      2. Strip ```json ... ``` wrapping then parse
+      3. Find first '{' ... last '}' and parse that substring
 
-def ExtractJson(raw: str) -> str:
-    """Extract valid JSON from LLM output.
-
-    Handles common LLM quirks:
-      - ```json ... ``` wrapping
-      - Leading/trailing prose around the JSON object
-      - Extra whitespace
-      - Strings containing braces (proper quote-aware matching)
+    Returns the parsed dict, or None if extraction fails.
     """
     text = raw.strip()
 
-    # Try stripping ```json ... ``` block.
-    match = _CODE_BLOCK_RE.search(text)
+    # Strategy 1: direct parse.
+    try:
+        return json.loads(text)
+    except (json.JSONDecodeError, ValueError):
+        pass
+
+    # Strategy 2: strip ```json ... ``` wrapping.
+    code_block_re = re.compile(
+        r"```(?:json)?\s*\n?(.*?)\n?\s*```", re.DOTALL
+    )
+    match = code_block_re.search(text)
     if match:
-        text = match.group(1).strip()
+        try:
+            return json.loads(match.group(1).strip())
+        except (json.JSONDecodeError, ValueError):
+            pass
 
-    # If it still doesn't start with '{', find the first '{'.
+    # Strategy 3: find first '{' to last '}' and parse.
     start = text.find("{")
-    if start == -1:
-        return raw  # give up, return as-is
+    end = text.rfind("}")
+    if start != -1 and end > start:
+        try:
+            return json.loads(text[start : end + 1])
+        except (json.JSONDecodeError, ValueError):
+            pass
 
-    # Find the matching closing '}', handling strings properly.
-    depth = 0
-    in_string = False
-    escape = False
-    end = start
-    for i in range(start, len(text)):
-        c = text[i]
-        if escape:
-            escape = False
-            continue
-        if c == "\\":
-            if in_string:
-                escape = True
-            continue
-        if c == '"':
-            in_string = not in_string
-            continue
-        if in_string:
-            continue
-        if c == "{":
-            depth += 1
-        elif c == "}":
-            depth -= 1
-            if depth == 0:
-                end = i
-                break
-
-    return text[start : end + 1]
+    return None
 
 
 async def Main() -> None:
@@ -86,26 +70,30 @@ async def Main() -> None:
         try:
             # LLM generates the full lark-card JSON.
             raw_output = await llm.GenerateCardJson(chat_id, text)
-            card_json_str = ExtractJson(raw_output)
-
-            # Validate and re-serialize JSON.
-            try:
-                card_obj = json.loads(card_json_str)
-                clean_json = json.dumps(card_obj, ensure_ascii=False)
-            except json.JSONDecodeError as e:
-                logger.warning(
-                    "JSON parse failed (error: %s), trying raw send.\n"
-                    "First 300 chars: %s",
-                    e,
-                    card_json_str[:300],
-                )
-                # Still try to send the extracted string directly —
-                # lark-cli may accept it even if Python's parser rejects it.
-                clean_json = card_json_str
-
             logger.info(
-                "Sending card JSON (%d chars) via lark-cli", len(clean_json)
+                "LLM raw output (%d chars): %s ... %s",
+                len(raw_output),
+                raw_output[:200],
+                raw_output[-100:],
             )
+
+            card_obj = ExtractJson(raw_output)
+            if card_obj is None:
+                logger.error(
+                    "Failed to extract JSON from LLM output (%d chars)",
+                    len(raw_output),
+                )
+                await bot.SendCard(
+                    chat_id,
+                    "无法解析 AI 返回的卡片数据，请重试。",
+                    template="orange",
+                    title="解析失败",
+                )
+                return
+
+            clean_json = json.dumps(card_obj, ensure_ascii=False)
+            logger.info("Sending card JSON (%d chars)", len(clean_json))
+
             ok = await bot.SendRawCard(chat_id, clean_json)
             if not ok:
                 logger.warning("SendRawCard failed, sending error notice")
