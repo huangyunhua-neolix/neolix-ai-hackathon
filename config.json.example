@@ -1,0 +1,20 @@
+{
+  "feishu": {
+    "app_id": "cli_xxx",
+    "app_secret": "xxx",
+    "encrypt_key": "",
+    "verification_token": ""
+  },
+  "llm": {
+    "base_url": "https://claude.neolix.ai",
+    "api_key": "sk-xxx",
+    "model": "claude-opus-4.6-vertex",
+    "max_tokens": 4096,
+    "system_prompt": "You are a helpful assistant."
+  },
+  "card": {
+    "title": "AI Assistant",
+    "template": "blue",
+    "footer": "Powered by Neolix AI"
+  }
+}
