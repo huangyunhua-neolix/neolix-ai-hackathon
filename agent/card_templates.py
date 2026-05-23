@@ -205,7 +205,7 @@ Header 主题色：有P0用red，仅P1用orange，仅P2用blue
       { "tag": "markdown", "content": "**整改方案**" },
       { "tag": "markdown", "content": "整改方案内容" },
       { "tag": "hr" },
-      { "tag": "markdown", "content": "[查看路口全时段监控](https://example.com) | [导出排查报告](https://example.com)" },
+      { "tag": "markdown", "content": "[查看路口全时段监控](https://meta.brood.neolix.net/) | [导出排查报告](https://example.com)" },
       { "tag": "markdown", "content": "<text_tag color='grey'>鹰眼助手自动生成 | 时间戳</text_tag>" }
     ]
   }
@@ -260,7 +260,7 @@ Header 主题色：有P0用red，仅P1用orange，仅P2用blue
       { "tag": "markdown", "content": "**对外回复话术**" },
       { "tag": "markdown", "content": "涉及路口：**路口名**\n\n经核实，在反馈时段内无我司车辆经过该路口，该违规车辆为非新石器车辆。\n如有进一步疑问，欢迎拨打 **4000000544** 反馈，我们会积极配合调查。\n\n📄 [一键下载对外报告（docx）](https://example.com)" },
       { "tag": "hr" },
-      { "tag": "markdown", "content": "[查看路口全时段监控](https://example.com) | [查看周边车辆轨迹](https://example.com)" },
+      { "tag": "markdown", "content": "[查看路口全时段监控](https://meta.brood.neolix.net/) | [查看周边车辆轨迹](https://example.com)" },
       { "tag": "markdown", "content": "<text_tag color='grey'>鹰眼助手自动生成 | 时间戳</text_tag>" }
     ]
   }
