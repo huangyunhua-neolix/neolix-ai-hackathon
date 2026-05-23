@@ -88,31 +88,32 @@ async def Main() -> None:
             raw_output = await llm.GenerateCardJson(chat_id, text)
             card_json_str = ExtractJson(raw_output)
 
-            # Validate it's valid JSON.
+            # Validate and re-serialize JSON.
             try:
                 card_obj = json.loads(card_json_str)
+                clean_json = json.dumps(card_obj, ensure_ascii=False)
             except json.JSONDecodeError as e:
                 logger.warning(
-                    "LLM returned invalid JSON (error: %s):\n%s",
+                    "JSON parse failed (error: %s), trying raw send.\n"
+                    "First 300 chars: %s",
                     e,
-                    card_json_str[:500],
+                    card_json_str[:300],
                 )
-                # Fallback: wrap raw LLM text in a notification card.
-                await bot.SendCard(chat_id, raw_output)
-                return
+                # Still try to send the extracted string directly —
+                # lark-cli may accept it even if Python's parser rejects it.
+                clean_json = card_json_str
 
-            # Re-serialize to ensure compact, clean JSON for lark-cli.
-            clean_json = json.dumps(card_obj, ensure_ascii=False)
-
-            # Send the card JSON via lark-cli.
+            logger.info(
+                "Sending card JSON (%d chars) via lark-cli", len(clean_json)
+            )
             ok = await bot.SendRawCard(chat_id, clean_json)
             if not ok:
-                logger.warning("SendRawCard failed, falling back to text")
+                logger.warning("SendRawCard failed, sending error notice")
                 await bot.SendCard(
                     chat_id,
-                    "Card rendering failed. Please try again.",
+                    "卡片发送失败，请重试。",
                     template="orange",
-                    title="Warning",
+                    title="发送失败",
                 )
 
         except Exception:

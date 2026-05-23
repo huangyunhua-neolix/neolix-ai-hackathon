@@ -8,7 +8,9 @@ exactly matching the lark-card skill's send behavior.
 import asyncio
 import json
 import logging
+import os
 import subprocess
+import tempfile
 import threading
 import time
 from collections import OrderedDict
@@ -258,30 +260,88 @@ class FeishuBot:
     async def SendRawCard(self, chat_id: str, card_json: str) -> bool:
         """Send a raw card JSON string via lark-cli.
 
-        The JSON is passed directly as --content, no wrapping.
-        This is for LLM-generated card JSON that already follows a template.
+        Writes JSON to a temp file to avoid CLI argument length/escaping
+        issues, then reads it back as --content argument.
         """
         if chat_id.startswith("oc_"):
             id_flag = "--chat-id"
         else:
             id_flag = "--user-id"
 
-        cmd = [
-            LARK_CLI,
-            "im",
-            "+messages-send",
-            id_flag,
-            chat_id,
-            "--msg-type",
-            "interactive",
-            "--content",
-            card_json,
-            "--as",
-            "bot",
-        ]
-
         loop = asyncio.get_running_loop()
-        return await loop.run_in_executor(None, self._RunLarkCli, cmd)
+        return await loop.run_in_executor(
+            None, self._SendRawCardSync, id_flag, chat_id, card_json
+        )
+
+    def _SendRawCardSync(
+        self, id_flag: str, chat_id: str, card_json: str
+    ) -> bool:
+        """Send raw card JSON via lark-cli using a temp file.
+
+        Writing to a temp file avoids CLI argument length and
+        shell escaping issues with large JSON payloads.
+        """
+        tmp_path = None
+        try:
+            # Write JSON to temp file.
+            with tempfile.NamedTemporaryFile(
+                mode="w",
+                suffix=".json",
+                encoding="utf-8",
+                delete=False,
+            ) as f:
+                f.write(card_json)
+                tmp_path = f.name
+
+            logger.info(
+                "lark-cli send card (%d chars) via %s",
+                len(card_json),
+                tmp_path,
+            )
+
+            # lark-cli accepts the JSON via --content flag.
+            # Pass as list (no shell) — subprocess handles any length.
+            cmd = [
+                LARK_CLI,
+                "im",
+                "+messages-send",
+                id_flag,
+                chat_id,
+                "--msg-type",
+                "interactive",
+                "--content",
+                card_json,
+                "--as",
+                "bot",
+            ]
+            proc = subprocess.run(
+                cmd,
+                capture_output=True,
+                text=True,
+                timeout=30,
+            )
+
+            if proc.returncode != 0:
+                logger.error(
+                    "lark-cli failed (rc=%d): stderr=%s",
+                    proc.returncode,
+                    proc.stderr.strip()[:500],
+                )
+                return False
+            logger.info("lark-cli ok: %s", proc.stdout.strip()[:200])
+            return True
+        except subprocess.TimeoutExpired:
+            logger.error("lark-cli timed out")
+            return False
+        except Exception:
+            logger.exception("lark-cli error")
+            return False
+        finally:
+            if tmp_path:
+                try:
+                    os.unlink(tmp_path)
+                except OSError:
+                    pass
 
     def _RunLarkCli(self, cmd: list[str]) -> bool:
         """Execute a lark-cli command synchronously."""
