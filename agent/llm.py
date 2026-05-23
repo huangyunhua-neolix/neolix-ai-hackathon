@@ -58,13 +58,15 @@ class LlmClient:
         full_response = ""
 
         try:
+            # First call: full system prompt with templates.
+            system_prompt = self._GetSystemPrompt()
             messages = list(history)
 
             for attempt in range(_MAX_CONTINUATIONS + 1):
                 response = await self.client_.messages.create(
                     model=self.config_.model,
                     max_tokens=self.config_.max_tokens,
-                    system=self._GetSystemPrompt(),
+                    system=system_prompt,
                     messages=messages,
                 )
 
@@ -87,10 +89,12 @@ class LlmClient:
                 if response.stop_reason != "max_tokens":
                     break
 
-                # Continue: append partial assistant output, ask to continue.
+                # Continue: use minimal system prompt to reduce input size.
                 logger.info("Output truncated, requesting continuation...")
-                messages.append({"role": "assistant", "content": chunk})
-                messages.append({"role": "user", "content": "继续输出，从截断处接着写，不要重复已输出的内容"})
+                system_prompt = "继续输出未完成的 JSON，严格从截断处接着写，不要重复已有内容，不要加任何说明文字。"
+                messages = [
+                    {"role": "user", "content": "以下是未完成的输出，请接着写完：\n\n" + full_response},
+                ]
 
         except Exception:
             logger.exception("LLM call error")
