@@ -1,31 +1,29 @@
-"""Feishu channel: WebSocket message reception + lark-cli card reply.
+"""Feishu channel: WebSocket message reception + SDK card reply.
 
 Receiving: lark-oapi WebSocket long connection.
-Sending: subprocess call to ``lark-cli im +messages-send --msg-type interactive``,
-exactly matching the lark-card skill's send behavior.
+Sending: lark-oapi SDK ``im.v1.message.create`` for reliable card delivery.
 """
 
 import asyncio
 import json
 import logging
-import os
-import subprocess
-import tempfile
 import threading
 import time
 from collections import OrderedDict
-from dataclasses import dataclass
 from typing import Any, Callable, Coroutine
 
 import lark_oapi as lark
 import lark_oapi.ws.client as _lark_ws_client
+from lark_oapi.api.im.v1 import (
+    CreateMessageRequest,
+    CreateMessageRequestBody,
+)
 
 from agent.config import CardConfig, FeishuConfig
 
 logger = logging.getLogger(__name__)
 
 FEISHU_DOMAIN = lark.FEISHU_DOMAIN
-LARK_CLI = "/opt/homebrew/lib/node_modules/@larksuite/cli/bin/lark-cli"
 
 # Callback type: (chat_id, sender_id, message_id, text) -> Coroutine
 MessageHandler = Callable[[str, str, str, str], Coroutine[Any, Any, None]]
@@ -73,7 +71,7 @@ def BuildNotificationCard(
 
 
 class FeishuBot:
-    """Feishu bot: WebSocket receive + lark-cli card send."""
+    """Feishu bot: WebSocket receive + SDK card send."""
 
     def __init__(
         self, config: FeishuConfig, card_config: CardConfig | None = None
@@ -86,6 +84,14 @@ class FeishuBot:
         self.loop_: asyncio.AbstractEventLoop | None = None
         self.on_message_: MessageHandler | None = None
         self.processed_ids_: OrderedDict[str, None] = OrderedDict()
+        # API client for sending messages.
+        self.api_client_ = (
+            lark.Client.builder()
+            .app_id(config.app_id)
+            .app_secret(config.app_secret)
+            .domain(FEISHU_DOMAIN)
+            .build()
+        )
 
     def SetMessageHandler(self, handler: MessageHandler) -> None:
         self.on_message_ = handler
@@ -209,7 +215,7 @@ class FeishuBot:
             logger.exception("Error processing Feishu message")
 
     # ------------------------------------------------------------------
-    # Sending via lark-cli (matches lark-card skill exactly)
+    # Sending via lark-oapi SDK
     # ------------------------------------------------------------------
 
     async def SendCard(
@@ -221,11 +227,7 @@ class FeishuBot:
         template: str = "",
         footer: str = "",
     ) -> bool:
-        """Send a lark-card notification template card via lark-cli.
-
-        Uses: lark-cli im +messages-send --msg-type interactive --content '<card JSON>' --as bot
-        Exactly the same command the lark-card skill uses.
-        """
+        """Send a notification template card."""
         card_json = BuildNotificationCard(
             self.card_config_,
             content,
@@ -233,138 +235,53 @@ class FeishuBot:
             template=template,
             footer=footer,
         )
-
-        if chat_id.startswith("oc_"):
-            id_flag = "--chat-id"
-        else:
-            id_flag = "--user-id"
-
-        cmd = [
-            LARK_CLI,
-            "im",
-            "+messages-send",
-            id_flag,
-            chat_id,
-            "--msg-type",
-            "interactive",
-            "--content",
-            card_json,
-            "--as",
-            "bot",
-        ]
-
-        loop = asyncio.get_running_loop()
-        result = await loop.run_in_executor(None, self._RunLarkCli, cmd)
-        return result
+        return await self.SendRawCard(chat_id, card_json)
 
     async def SendRawCard(self, chat_id: str, card_json: str) -> bool:
-        """Send a raw card JSON string via lark-cli.
-
-        Writes JSON to a temp file to avoid CLI argument length/escaping
-        issues, then reads it back as --content argument.
-        """
-        if chat_id.startswith("oc_"):
-            id_flag = "--chat-id"
-        else:
-            id_flag = "--user-id"
-
+        """Send a raw card JSON string via lark-oapi SDK."""
         loop = asyncio.get_running_loop()
         return await loop.run_in_executor(
-            None, self._SendRawCardSync, id_flag, chat_id, card_json
+            None, self._SendMessageSync, chat_id, card_json
         )
 
-    def _SendRawCardSync(
-        self, id_flag: str, chat_id: str, card_json: str
-    ) -> bool:
-        """Send raw card JSON via lark-cli using a temp file.
-
-        Writing to a temp file avoids CLI argument length and
-        shell escaping issues with large JSON payloads.
-        """
-        tmp_path = None
+    def _SendMessageSync(self, chat_id: str, card_json: str) -> bool:
+        """Send an interactive card message via lark-oapi SDK."""
         try:
-            # Write JSON to temp file.
-            with tempfile.NamedTemporaryFile(
-                mode="w",
-                suffix=".json",
-                encoding="utf-8",
-                delete=False,
-            ) as f:
-                f.write(card_json)
-                tmp_path = f.name
+            if chat_id.startswith("oc_"):
+                receive_id_type = "chat_id"
+            else:
+                receive_id_type = "open_id"
+
+            request = (
+                CreateMessageRequest.builder()
+                .receive_id_type(receive_id_type)
+                .request_body(
+                    CreateMessageRequestBody.builder()
+                    .receive_id(chat_id)
+                    .msg_type("interactive")
+                    .content(card_json)
+                    .build()
+                )
+                .build()
+            )
 
             logger.info(
-                "lark-cli send card (%d chars) via %s",
+                "Sending card (%d chars) to %s via SDK",
                 len(card_json),
-                tmp_path,
-            )
-
-            # lark-cli accepts the JSON via --content flag.
-            # Pass as list (no shell) — subprocess handles any length.
-            cmd = [
-                LARK_CLI,
-                "im",
-                "+messages-send",
-                id_flag,
                 chat_id,
-                "--msg-type",
-                "interactive",
-                "--content",
-                card_json,
-                "--as",
-                "bot",
-            ]
-            proc = subprocess.run(
-                cmd,
-                capture_output=True,
-                text=True,
-                timeout=30,
             )
+            response = self.api_client_.im.v1.message.create(request)
 
-            if proc.returncode != 0:
+            if not response.success():
                 logger.error(
-                    "lark-cli failed (rc=%d): stderr=%s",
-                    proc.returncode,
-                    proc.stderr.strip()[:500],
+                    "SDK send failed: code=%d msg=%s",
+                    response.code,
+                    response.msg,
                 )
                 return False
-            logger.info("lark-cli ok: %s", proc.stdout.strip()[:200])
-            return True
-        except subprocess.TimeoutExpired:
-            logger.error("lark-cli timed out")
-            return False
-        except Exception:
-            logger.exception("lark-cli error")
-            return False
-        finally:
-            if tmp_path:
-                try:
-                    os.unlink(tmp_path)
-                except OSError:
-                    pass
 
-    def _RunLarkCli(self, cmd: list[str]) -> bool:
-        """Execute a lark-cli command synchronously."""
-        try:
-            logger.info("lark-cli: %s", " ".join(cmd[:6]) + " ...")
-            proc = subprocess.run(
-                cmd,
-                capture_output=True,
-                text=True,
-                timeout=30,
-            )
-            if proc.returncode != 0:
-                logger.error(
-                    "lark-cli failed (rc=%d): %s",
-                    proc.returncode,
-                    proc.stderr.strip(),
-                )
-                return False
-            logger.info("lark-cli ok: %s", proc.stdout.strip()[:200])
+            logger.info("SDK send ok: message_id=%s", response.data.message_id)
             return True
-        except subprocess.TimeoutExpired:
-            logger.error("lark-cli timed out")
-            return False
         except Exception:
-            logger.exception("lark-cli error")
+            logger.exception("SDK send error")
             return False
