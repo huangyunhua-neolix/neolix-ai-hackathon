@@ -135,6 +135,10 @@ Header 主题色：有P0用red，仅P1用orange，仅P2用blue
 - 上午时段（00:00 ~ 11:59）→ 使用变体 A（命中），使用车辆 X6S5014 和 X3S0079
 - 下午时段（12:00 ~ 23:59）→ 使用变体 B（未命中），定性为非新石器车辆
 
+**车辆回放/诊断报告链接（Mock）：**
+- X6S5014：https://meta.brood.neolix.net/?vehicles=X6S5014&start=2026-05-23T07:47:32%2B08:00&end=2026-05-23T09:47:32%2B08:00&at=2026-05-23T08:42:32%2B08:00
+- X3S0079：https://meta.brood.neolix.net/?vehicles=X3S0079&start=2026-05-23T08:12:08%2B08:00&end=2026-05-23T10:12:08%2B08:00&at=2026-05-23T09:07:08%2B08:00
+
 #### 变体 A：命中车辆（red 主题）
 
 适用：AI 分析后发现有新石器车辆在该时段经过路口且存在违规行为
@@ -430,6 +434,11 @@ Header 主题色：有P0用red，仅P1用orange，仅P2用blue
 | 行驶速度过慢/阻碍交通 | 6 条 | X5S2088 | LHTCA2B35TY8PC203 |
 | 闯红灯/不遵守信号灯 | 4 条 | X6S5014 | LHTCA2B37SY6MA056 |
 | 噪音扰民 | 2 条 | 未定位 | — |
+
+**车辆诊断报告链接（Mock）：**
+- X6S5014：https://meta.brood.neolix.net/?vehicles=X6S5014&start=2026-05-23T07:47:32%2B08:00&end=2026-05-23T09:47:32%2B08:00&at=2026-05-23T08:42:32%2B08:00
+- X3S0079：https://meta.brood.neolix.net/?vehicles=X3S0079&start=2026-05-23T08:12:08%2B08:00&end=2026-05-23T10:12:08%2B08:00&at=2026-05-23T09:07:08%2B08:00
+- X5S2088：https://meta.brood.neolix.net/?vehicles=X5S2088
 
 ---
 
