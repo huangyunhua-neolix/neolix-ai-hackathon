@@ -138,9 +138,9 @@ Header 主题色：有P0用red，仅P1用orange，仅P2用blue
 **车辆回放/诊断报告链接（Mock）：**
 - X6S5014：https://meta.brood.neolix.net/?vehicles=X6S5014&start=2026-05-23T07:47:32%2B08:00&end=2026-05-23T09:47:32%2B08:00&at=2026-05-23T08:42:32%2B08:00
 - X3S0079：https://meta.brood.neolix.net/?vehicles=X3S0079&start=2026-05-23T08:12:08%2B08:00&end=2026-05-23T10:12:08%2B08:00&at=2026-05-23T09:07:08%2B08:00
-- X6-50199T：https://meta.brood.neolix.net/?vehicles=X6-50199T&start=2026-05-23T09:50:00%2B08:00&end=2026-05-23T10:10:00%2B08:00&at=2026-05-23T10:00:00%2B08:00
-- X6-6S5688：https://meta.brood.neolix.net/?vehicles=X6-6S5688&start=2026-05-23T13:50:00%2B08:00&end=2026-05-23T14:10:00%2B08:00&at=2026-05-23T14:00:00%2B08:00
-- X6-60097T：https://meta.brood.neolix.net/?vehicles=X6-60097T&start=2026-05-23T15:50:00%2B08:00&end=2026-05-23T16:10:00%2B08:00&at=2026-05-23T16:00:00%2B08:00
+- X6-50199T：https://meta.brood.neolix.net/?vehicles=X6-50199T&start=2026-05-23T09:50:00%2B08:00&end=2026-05-23T10:10:00%2B08:00&at=2026-05-23T09:55:00%2B08:00
+- X6-6S5688：https://meta.brood.neolix.net/?vehicles=X6-6S5688&start=2026-05-23T13:50:00%2B08:00&end=2026-05-23T14:10:00%2B08:00&at=2026-05-23T13:55:00%2B08:00
+- X6-60097T：https://meta.brood.neolix.net/?vehicles=X6-60097T&start=2026-05-23T15:50:00%2B08:00&end=2026-05-23T16:10:00%2B08:00&at=2026-05-23T15:55:00%2B08:00
 
 #### 变体 A：命中车辆（red 主题）
 
