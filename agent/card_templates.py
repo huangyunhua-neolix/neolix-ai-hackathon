@@ -78,7 +78,7 @@ CARD_TEMPLATES_PROMPT = r"""
         "flex_mode": "none",
         "columns": [
           { "tag": "column", "width": "weighted", "weight": 1, "elements": [{ "tag": "markdown", "content": "**车辆编号**" }] },
-          { "tag": "column", "width": "weighted", "weight": 1, "elements": [{ "tag": "markdown", "content": "**车牌号**" }] },
+          { "tag": "column", "width": "weighted", "weight": 1, "elements": [{ "tag": "markdown", "content": "**VIN**" }] },
           { "tag": "column", "width": "weighted", "weight": 1, "elements": [{ "tag": "markdown", "content": "**线路**" }] },
           { "tag": "column", "width": "weighted", "weight": 1, "elements": [{ "tag": "markdown", "content": "**驾驶模式**" }] }
         ]
@@ -88,7 +88,7 @@ CARD_TEMPLATES_PROMPT = r"""
         "flex_mode": "none",
         "columns": [
           { "tag": "column", "width": "weighted", "weight": 1, "elements": [{ "tag": "markdown", "content": "车辆编号值" }] },
-          { "tag": "column", "width": "weighted", "weight": 1, "elements": [{ "tag": "markdown", "content": "车牌号值" }] },
+          { "tag": "column", "width": "weighted", "weight": 1, "elements": [{ "tag": "markdown", "content": "VIN值" }] },
           { "tag": "column", "width": "weighted", "weight": 1, "elements": [{ "tag": "markdown", "content": "线路值" }] },
           { "tag": "column", "width": "weighted", "weight": 1, "elements": [{ "tag": "markdown", "content": "驾驶模式值" }] }
         ]
