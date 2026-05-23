@@ -13,6 +13,7 @@ logger = logging.getLogger(__name__)
 
 _MAX_HISTORY = 20
 _MAX_CONVERSATIONS = 200
+_MAX_CONTINUATIONS = 5
 
 
 class LlmClient:
@@ -47,24 +48,50 @@ class LlmClient:
     async def GenerateCardJson(self, chat_id: str, user_message: str) -> str:
         """Call LLM to generate a lark-card JSON response.
 
-        Returns the full response text (should be a valid JSON string).
+        If the model hits max_tokens, automatically continues the
+        conversation to collect the remaining output and concatenates
+        all chunks into a single response.
         """
         history = self._GetHistory(chat_id)
         history.append({"role": "user", "content": user_message})
 
-        messages = list(history)
         full_response = ""
 
         try:
-            response = await self.client_.messages.create(
-                model=self.config_.model,
-                max_tokens=self.config_.max_tokens,
-                system=self._GetSystemPrompt(),
-                messages=messages,
-            )
-            for block in response.content:
-                if block.type == "text":
-                    full_response += block.text
+            messages = list(history)
+
+            for attempt in range(_MAX_CONTINUATIONS + 1):
+                response = await self.client_.messages.create(
+                    model=self.config_.model,
+                    max_tokens=self.config_.max_tokens,
+                    system=self._GetSystemPrompt(),
+                    messages=messages,
+                )
+
+                chunk = ""
+                for block in response.content:
+                    if block.type == "text":
+                        chunk += block.text
+                full_response += chunk
+
+                logger.info(
+                    "LLM chunk #%d: stop_reason=%s, output_tokens=%s, "
+                    "chunk_len=%d, total_len=%d",
+                    attempt,
+                    response.stop_reason,
+                    response.usage.output_tokens,
+                    len(chunk),
+                    len(full_response),
+                )
+
+                if response.stop_reason != "max_tokens":
+                    break
+
+                # Continue: append partial assistant output, ask to continue.
+                logger.info("Output truncated, requesting continuation...")
+                messages.append({"role": "assistant", "content": chunk})
+                messages.append({"role": "user", "content": "继续输出，从截断处接着写，不要重复已输出的内容"})
+
         except Exception:
             logger.exception("LLM call error")
             if history and history[-1]["role"] == "user":
