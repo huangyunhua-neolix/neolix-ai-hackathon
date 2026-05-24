@@ -24,6 +24,7 @@ CARD_TEMPLATES_PROMPT = r"""
 | 精确车号+时间，单车行程诊断 | 车辆行程诊断卡片 |
 | 地点+时间，排查路口违规车辆 | 路口排查卡片（命中/未命中） |
 | 一批市民投诉，AI 归并分析定位车辆 | 市民投诉分析报告卡片 |
+| 禁行区运营影响分析、运营数据洞见 | 洞见卡片（禁行区分析） |
 | 数据列表、筛选结果 | 表格数据卡片 |
 | 系统通知、状态变更、一般性回复 | 通知卡片 |
 
@@ -442,6 +443,121 @@ Header 主题色：有P0用red，仅P1用orange，仅P2用blue
 - X6S5014：https://meta.brood.neolix.net/?vehicles=X6S5014&start=2026-05-23T07:47:32%2B08:00&end=2026-05-23T09:47:32%2B08:00&at=2026-05-23T08:42:32%2B08:00
 - X3S0079：https://meta.brood.neolix.net/?vehicles=X3S0079&start=2026-05-23T08:12:08%2B08:00&end=2026-05-23T10:12:08%2B08:00&at=2026-05-23T09:07:08%2B08:00
 - X5S2088：https://meta.brood.neolix.net/?vehicles=X5S2088
+
+---
+
+### 模板 6：洞见卡片 · 禁行区运营影响分析
+
+适用：综合近期运营数据，自动识别对运营影响最严重的禁行区，按三类分析并给出 AI 优化建议。
+主题色：indigo（靛蓝）
+
+三类禁行区：
+1. 交警认定风险路段（GA 要求）— 按影响程度从高到低，建议 GA 同事优先沟通解除
+2. 地图错误导致的禁行 — 按日均影响里程从高到低，按影响面修复
+3. 自动驾驶能力限制 — 按迭代难度和影响范围综合排序，按投入产出比给出修复建议
+
+```json
+{
+  "schema": "2.0",
+  "config": { "wide_screen_mode": true },
+  "header": {
+    "title": { "tag": "plain_text", "content": "鹰眼洞见 · 禁行区运营影响分析" },
+    "subtitle": { "tag": "plain_text", "content": "综合近 30 天运营数据 | 发现 3 类高影响禁行区 | 共 N 个关键禁行区" },
+    "template": "indigo"
+  },
+  "body": {
+    "elements": [
+      { "tag": "markdown", "content": "鹰眼系统综合近期运营数据，自动识别出以下三类对运营影响最严重的禁行区，并给出 AI 优化建议：" },
+      { "tag": "hr" },
+      { "tag": "markdown", "content": "<text_tag color='red'>第一类 · 交警认定风险路段（GA 要求）</text_tag>  **影响最大 Top N**" },
+      { "tag": "markdown", "content": "<text_tag color='indigo'>AI 建议</text_tag>  建议 GA 同事优先沟通解除该禁行区，可大幅度提高运营效率。按影响程度从高到低排列，优先处理 TOP 1。" },
+      { "tag": "hr" },
+      { "tag": "markdown", "content": "<text_tag color='red'>TOP 1</text_tag>  **禁行类型**" },
+      {
+        "tag": "column_set",
+        "flex_mode": "none",
+        "columns": [
+          { "tag": "column", "width": "weighted", "weight": 1, "elements": [{ "tag": "markdown", "content": "**禁行区 ID**" }] },
+          { "tag": "column", "width": "weighted", "weight": 1, "elements": [{ "tag": "markdown", "content": "**来源**" }] },
+          { "tag": "column", "width": "weighted", "weight": 1, "elements": [{ "tag": "markdown", "content": "**类型**" }] },
+          { "tag": "column", "width": "weighted", "weight": 1, "elements": [{ "tag": "markdown", "content": "**影响程度**" }] }
+        ]
+      },
+      {
+        "tag": "column_set",
+        "flex_mode": "none",
+        "columns": [
+          { "tag": "column", "width": "weighted", "weight": 1, "elements": [{ "tag": "markdown", "content": "ID值" }] },
+          { "tag": "column", "width": "weighted", "weight": 1, "elements": [{ "tag": "markdown", "content": "来源值" }] },
+          { "tag": "column", "width": "weighted", "weight": 1, "elements": [{ "tag": "markdown", "content": "类型值" }] },
+          { "tag": "column", "width": "weighted", "weight": 1, "elements": [{ "tag": "markdown", "content": "<text_tag color='red'>影响程度</text_tag>" }] }
+        ]
+      },
+      { "tag": "markdown", "content": "**影响分析：** 分析描述\n[查看禁行区详情](https://example.com)" },
+      { "tag": "hr" },
+      { "tag": "markdown", "content": "... 更多 GA 禁行区按影响程度从高到低排列 ..." },
+      { "tag": "hr" },
+      { "tag": "markdown", "content": "<text_tag color='orange'>第二类 · 地图错误导致的禁行</text_tag>" },
+      { "tag": "markdown", "content": "<text_tag color='indigo'>AI 建议</text_tag>  按照影响面从高到低修复，优先处理日均影响里程最大的地图错误。" },
+      { "tag": "markdown", "content": "\n**1. 路段名** <text_tag color='red'>日均影响 Nkm</text_tag>\n禁行区 ID：ID\n问题：问题描述\n影响：影响描述\n状态：<text_tag color='red'>待修复</text_tag>\n**AI 建议：** 建议内容\n[查看地图数据](https://example.com)" },
+      { "tag": "hr" },
+      { "tag": "markdown", "content": "<text_tag color='orange'>第三类 · 自动驾驶能力限制导致的禁行</text_tag>" },
+      { "tag": "markdown", "content": "<text_tag color='indigo'>AI 建议</text_tag>  按自动驾驶迭代难度和影响范围综合排序，优先攻克投入产出比最高的能力项。" },
+      { "tag": "markdown", "content": "\n<text_tag color='green'>难度低 · 影响大</text_tag> **1. 路段名**\n禁行原因：原因\n影响：影响描述\n预计解决：日期\n**AI 建议：** 建议内容\n[查看能力评估报告](https://example.com)" },
+      { "tag": "hr" },
+      { "tag": "markdown", "content": "**运营影响汇总**" },
+      {
+        "tag": "column_set",
+        "flex_mode": "none",
+        "background_style": "grey",
+        "columns": [
+          { "tag": "column", "width": "weighted", "weight": 1, "elements": [{ "tag": "markdown", "content": "**禁行类型**" }] },
+          { "tag": "column", "width": "weighted", "weight": 1, "elements": [{ "tag": "markdown", "content": "**禁行区数**" }] },
+          { "tag": "column", "width": "weighted", "weight": 1, "elements": [{ "tag": "markdown", "content": "**日均绕路**" }] },
+          { "tag": "column", "width": "weighted", "weight": 1, "elements": [{ "tag": "markdown", "content": "**可优化空间**" }] }
+        ]
+      },
+      { "tag": "markdown", "content": "... 三行数据：GA要求/地图错误/能力限制 ..." },
+      { "tag": "hr" },
+      { "tag": "markdown", "content": "[查看全部禁行区地图](https://example.com) | [导出完整分析报告](https://example.com)" },
+      { "tag": "markdown", "content": "<text_tag color='grey'>鹰眼助手自动生成 | 时间戳 | 数据周期：近30天</text_tag>" }
+    ]
+  }
+}
+```
+
+第一类影响程度颜色：极高=red, 高=orange, 中=grey
+第二类日均影响里程颜色：≥20km red, 10~19km orange, <10km grey
+第二类修复状态颜色：待修复=red, 已提交=orange, 已修复=green
+第三类难度颜色：低=green, 中=orange, 高=red
+第三类排序优先级：难度低+影响大 > 难度中+影响大 > 难度低+影响中 > 难度高+影响大 > 难度中+影响中 > 难度高+影响中
+AI 建议使用 `<text_tag color='indigo'>AI 建议</text_tag>` 标签
+运营影响汇总表使用灰底表头（`background_style: "grey"`），三行分别为 GA要求/地图错误/能力限制
+
+**Mock 数据：**
+
+第一类 GA 要求（3 个）：
+| 排名 | ID | 来源 | 类型 | 影响 |
+|------|------|------|------|------|
+| TOP1 | 266041009012025061404 | MOC | 早晚高峰禁行 | 极高：100%停运，取消可提效30% |
+| TOP2 | 266041009012025052201 | MOC | 交警风险路段 | 高：30%车辆绕路，日均1000km |
+| TOP3 | 266041009012025040815 | MOC | 学校周边限行 | 中：3条线路受影响，日均320km |
+
+第二类 地图错误（3 个，按日均影响排序）：
+| 排名 | 位置 | 日均影响 | 问题 |
+|------|------|---------|------|
+| 1 | 荣华中路中段 | 28km | 限速标记0km/h，规划引擎回避 |
+| 2 | 经海四路辅路 | 18km | 辅路误标为人行道 |
+| 3 | 博兴南路×荣昌西街 | 11.5km | 施工已完成但地图未更新 |
+
+第三类 能力限制（3 个，按难度+影响排序）：
+| 排名 | 位置 | 难度 | 影响 |
+|------|------|------|------|
+| 1 | 博兴路夜间无灯 | 低（非算法） | 大（夜间运力-40%） |
+| 2 | 科创街限高杆 | 中（模型迭代） | 大（3线路/15km） |
+| 3 | 景园街施工围栏 | 高（场景复杂） | 中（2线路/8km） |
+
+运营影响汇总：GA要求 3个/日均1320km/提效30%，地图错误 3个/57.5km/修复即恢复，能力限制 3个/23km/待模型迭代
 
 ---
 
